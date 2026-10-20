@@ -145,20 +145,31 @@
       if (event === "SIGNED_OUT") location.replace("index.html");
     });
 
+    // Espera una promesa como mucho `ms` milisegundos (por si se queda bloqueada)
+    const withTimeout = (promise, ms) => Promise.race([
+      promise,
+      new Promise(resolve => setTimeout(() => resolve({ error: new Error("tiempo agotado") }), ms)),
+    ]);
+
     // Cerrar sesión: primero en el servidor (invalida la sesión en todas partes);
-    // si eso falla (red, sesión caducada…), al menos se borra en este navegador.
+    // si eso falla o tarda demasiado, al menos se borra en este navegador.
     document.getElementById("logout").addEventListener("click", async (e) => {
       e.currentTarget.disabled = true;
       try {
-        const { error } = await sb.auth.signOut();
+        const { error } = await withTimeout(sb.auth.signOut(), 4000);
         if (error) {
           console.warn("signOut global falló, cerrando solo en local:", error.message);
-          await sb.auth.signOut({ scope: "local" });
+          await withTimeout(sb.auth.signOut({ scope: "local" }), 2000);
         }
       } catch (err) {
         console.warn(err);
-        await sb.auth.signOut({ scope: "local" }).catch(() => {});
       }
+      // Último recurso: borrar la sesión guardada en este navegador sí o sí
+      try {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith("sb-") && k.includes("-auth-token"))
+          .forEach(k => localStorage.removeItem(k));
+      } catch {}
       location.replace("index.html");
     });
   </script>
