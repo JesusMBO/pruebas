@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pago completado</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+</head>
+<body>
+  <main class="center-page">
+    <div class="status-card">
+      <div id="icon" class="status-icon wait"></div>
+      <h1 id="title">Confirmando tu pago…</h1>
+      <p id="text">Estamos esperando la confirmación de Stripe. Solo tarda unos segundos.</p>
+      <a class="btn" href="privado.html"><span class="label">Volver a mi zona privada</span></a>
+    </div>
+  </main>
+
+  <script>
+    // Llegar a esta página NO demuestra que se haya pagado (la URL se puede abrir a mano).
+    // La confirmación real la hace el webhook de Stripe en el servidor; aquí solo
+    // esperamos a ver reflejado ese cambio en la base de datos.
+    const ok = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+
+    sb.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return location.replace("index.html");
+      const userId = data.session.user.id;
+
+      for (let i = 0; i < 15; i++) {
+        const { data: fila } = await sb.from("premium").select("es_premium").eq("user_id", userId).maybeSingle();
+        if (fila?.es_premium) {
+          const icon = document.getElementById("icon");
+          icon.className = "status-icon ok";
+          icon.innerHTML = ok;
+          document.getElementById("title").textContent = "¡Ya eres Premium!";
+          document.getElementById("text").textContent = "Tu pago se ha completado correctamente. Gracias por tu compra.";
+          return;
+        }
+        await new Promise(r => setTimeout(r, 2000));
+      }
+
+      document.getElementById("icon").className = "status-icon";
+      document.getElementById("title").textContent = "Pago en proceso";
+      document.getElementById("text").textContent = "Aún no hemos recibido la confirmación. Si has pagado, se activará en unos minutos.";
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zona privada</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+</head>
+<body>
+  <div id="content" class="hidden">
+    <header class="topbar">
+      <div class="logo">
+        <span class="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>
+        </span>
+        Prueba
+      </div>
+      <div class="user-chip">
+        <span id="email-top" class="user-email-top"></span>
+        <span id="avatar" class="avatar"></span>
+        <button id="logout" class="btn-ghost" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Salir
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="hero">
+        <span class="badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Sesión verificada
+        </span>
+        <h1 id="greeting">Hola</h1>
+        <p>Estás en tu zona privada. Solo tú puedes ver esta página.</p>
+      </section>
+
+      <div id="pay-msg" class="msg hidden" role="alert"></div>
+
+      <section id="premium-box" class="premium-card hidden">
+        <div>
+          <div class="premium-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7L2 9.5l7.1-.6z"/></svg>
+            <span id="premium-heading">Hazte Premium</span>
+          </div>
+          <p id="premium-text" class="premium-text">Desbloquea todas las funciones con un único pago de 9,99 €.</p>
+        </div>
+        <button id="buy" class="btn btn-inline" type="button"><span class="label">Comprar Premium</span></button>
+      </section>
+
+      <section class="cards">
+        <div class="card">
+          <div class="card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          </div>
+          <div class="card-label">Email</div>
+          <div id="card-email" class="card-value"></div>
+        </div>
+        <div class="card">
+          <div class="card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <div class="card-label">Cuenta creada</div>
+          <div id="card-created" class="card-value"></div>
+        </div>
+        <div class="card">
+          <div class="card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          </div>
+          <div class="card-label">Último acceso</div>
+          <div id="card-last" class="card-value"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const fmt = (d) => d ? new Date(d).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" }) : "—";
+
+    // Sin sesión, volvemos al login
+    sb.auth.getSession().then(({ data }) => {
+      if (!data.session) return location.replace("index.html");
+      const user = data.session.user;
+      const name = user.email.split("@")[0];
+
+      document.getElementById("email-top").textContent = user.email;
+      document.getElementById("avatar").textContent = name.charAt(0).toUpperCase();
+      document.getElementById("greeting").textContent = "Hola, " + name + " 👋";
+      document.getElementById("card-email").textContent = user.email;
+      document.getElementById("card-created").textContent = fmt(user.created_at);
+      document.getElementById("card-last").textContent = fmt(user.last_sign_in_at);
+      document.getElementById("content").classList.remove("hidden");
+      loadPremium(user.id);
+    });
+
+    const payMsg = document.getElementById("pay-msg");
+    const buyBtn = document.getElementById("buy");
+
+    function showPayMsg(text, type) {
+      payMsg.textContent = text;
+      payMsg.className = "msg " + type;
+    }
+
+    if (new URLSearchParams(location.search).get("pago") === "cancelado") {
+      showPayMsg("Has cancelado el pago. No se ha cobrado nada.", "error");
+      history.replaceState(null, "", "privado.html");
+    }
+
+    // Estado premium: la tabla está protegida con RLS, cada usuario solo ve su fila
+    async function loadPremium(userId) {
+      const { data } = await sb.from("premium").select("es_premium, pagado_en").eq("user_id", userId).maybeSingle();
+      const box = document.getElementById("premium-box");
+      if (data?.es_premium) {
+        box.classList.add("is-premium");
+        document.getElementById("premium-heading").textContent = "Eres Premium";
+        document.getElementById("premium-text").textContent = "Gracias por tu compra. Pagado el " + fmt(data.pagado_en) + ".";
+        buyBtn.classList.add("hidden");
+      }
+      box.classList.remove("hidden");
+    }
+
+    // Pedir a nuestra Edge Function una sesión de pago y redirigir a Stripe
+    buyBtn.addEventListener("click", async () => {
+      buyBtn.disabled = true;
+      buyBtn.classList.add("loading");
+      try {
+        const { data, error } = await sb.functions.invoke("crear-pago", { method: "POST" });
+        if (error || !data?.url) throw error || new Error("Sin URL de pago");
+        location.href = data.url;
+      } catch (e) {
+        console.error(e);
+        showPayMsg("No se pudo iniciar el pago. Inténtalo de nuevo.", "error");
+        buyBtn.disabled = false;
+        buyBtn.classList.remove("loading");
+      }
+    });
+
+    // Si la sesión se cierra (también desde otra pestaña), salir
+    sb.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") location.replace("index.html");
+    });
+
+    document.getElementById("logout").addEventListener("click", async () => {
+      await sb.auth.signOut();
+    });
+  </script>
+</body>
+</html>

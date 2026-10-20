@@ -1,0 +1,9 @@
+# Configuración de las Edge Functions para el despliegue con la CLI de Supabase.
+# Ambas verifican la seguridad dentro de su propio código:
+# - crear-pago comprueba el token de sesión del usuario
+# - stripe-webhook comprueba la firma de Stripe
+[functions.crear-pago]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

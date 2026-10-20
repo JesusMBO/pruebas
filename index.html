@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+</head>
+<body>
+  <div class="auth">
+    <aside class="brand">
+      <div class="logo">
+        <span class="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>
+        </span>
+        Jesusmbo Pruebas
+      </div>
+
+      <div class="pitch">
+        <h2>Tu espacio, protegido de verdad.</h2>
+        <p>Accede a tu cuenta de forma segura. Tus datos viajan cifrados y tu contraseña nunca se guarda en texto plano.</p>
+        <ul class="features">
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Contraseñas cifradas con bcrypt
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Sesiones seguras y cierre en todas las pestañas
+          </li>
+        </ul>
+      </div>
+
+      <div class="brand-foot">© 2026 Prueba</div>
+    </aside>
+
+    <main class="panel">
+      <div class="form-box">
+        <h1 id="title">Bienvenido de nuevo</h1>
+        <p id="subtitle" class="subtitle">Introduce tus datos para acceder a tu cuenta.</p>
+
+        <div class="switch" id="switch" data-mode="login" role="tablist">
+          <span class="pill"></span>
+          <button class="tab active" data-mode="login" role="tab" type="button">Iniciar sesión</button>
+          <button class="tab" data-mode="signup" role="tab" type="button">Registrarse</button>
+        </div>
+
+        <form id="form" novalidate>
+          <label for="email">Email</label>
+          <div class="field">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+            <input id="email" type="email" autocomplete="email" placeholder="tu@email.com" required>
+          </div>
+
+          <label for="password">Contraseña</label>
+          <div class="field">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="8">
+            <button id="toggle-pw" class="toggle-pw" type="button" aria-label="Mostrar contraseña">
+              <svg id="eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+
+          <div id="strength" class="strength hidden" aria-live="polite">
+            <div class="strength-bar"><span id="strength-fill"></span></div>
+            <div id="strength-text" class="strength-text">Mínimo 8 caracteres.</div>
+          </div>
+
+          <button id="submit" class="btn" type="submit"><span class="label">Entrar</span></button>
+        </form>
+
+        <div id="msg" class="msg hidden" role="alert"></div>
+
+        <div class="secure-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          Conexión protegida con Supabase Auth
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let mode = "login";
+    const form = document.getElementById("form");
+    const emailEl = document.getElementById("email");
+    const passEl = document.getElementById("password");
+    const submitBtn = document.getElementById("submit");
+    const submitLabel = submitBtn.querySelector(".label");
+    const msgEl = document.getElementById("msg");
+    const switchEl = document.getElementById("switch");
+    const strengthEl = document.getElementById("strength");
+    const strengthFill = document.getElementById("strength-fill");
+    const strengthText = document.getElementById("strength-text");
+
+    const texts = {
+      login: { title: "Bienvenido de nuevo", subtitle: "Introduce tus datos para acceder a tu cuenta.", button: "Entrar" },
+      signup: { title: "Crea tu cuenta", subtitle: "Solo necesitas un email y una contraseña segura.", button: "Crear cuenta" }
+    };
+
+    function showMsg(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = "msg " + type;
+    }
+
+    // Si ya hay sesión, ir directamente a la zona privada
+    sb.auth.getSession().then(({ data }) => {
+      if (data.session) location.replace("privado.html");
+    });
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        mode = tab.dataset.mode;
+        switchEl.dataset.mode = mode;
+        document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === tab));
+        document.getElementById("title").textContent = texts[mode].title;
+        document.getElementById("subtitle").textContent = texts[mode].subtitle;
+        submitLabel.textContent = texts[mode].button;
+        passEl.autocomplete = mode === "login" ? "current-password" : "new-password";
+        strengthEl.classList.toggle("hidden", mode === "login");
+        msgEl.className = "msg hidden";
+      });
+    });
+
+    // Mostrar / ocultar contraseña
+    document.getElementById("toggle-pw").addEventListener("click", (e) => {
+      const show = passEl.type === "password";
+      passEl.type = show ? "text" : "password";
+      e.currentTarget.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+      e.currentTarget.style.color = show ? "var(--primary)" : "";
+    });
+
+    // Medidor de fortaleza (solo orientativo)
+    passEl.addEventListener("input", () => {
+      const p = passEl.value;
+      let score = 0;
+      if (p.length >= 8) score++;
+      if (p.length >= 12) score++;
+      if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++;
+      if (/\d/.test(p)) score++;
+      if (/[^A-Za-z0-9]/.test(p)) score++;
+      const levels = [
+        { w: "10%", c: "#ef4444", t: "Muy débil" },
+        { w: "25%", c: "#ef4444", t: "Débil" },
+        { w: "50%", c: "#f59e0b", t: "Aceptable" },
+        { w: "70%", c: "#eab308", t: "Buena" },
+        { w: "85%", c: "#22c55e", t: "Fuerte" },
+        { w: "100%", c: "#16a34a", t: "Muy fuerte" }
+      ];
+      const lvl = p ? levels[score] : { w: "0", c: "transparent", t: "Mínimo 8 caracteres." };
+      strengthFill.style.width = lvl.w;
+      strengthFill.style.background = lvl.c;
+      strengthText.textContent = p && p.length < 8 ? "Mínimo 8 caracteres." : lvl.t;
+    });
+
+    // Traduce los errores más habituales de Supabase al registrarse
+    function signupError(error) {
+      const m = (error.message || "").toLowerCase();
+      if (m.includes("rate limit")) return "Se han enviado demasiados correos en poco tiempo. Espera un rato e inténtalo de nuevo.";
+      if (m.includes("already registered")) return "Ya existe una cuenta con ese email. Prueba a iniciar sesión.";
+      if (m.includes("invalid") && m.includes("email")) return "El email no es válido.";
+      if (m.includes("password")) return "La contraseña no cumple los requisitos de seguridad.";
+      return "No se pudo crear la cuenta. Inténtalo de nuevo más tarde.";
+    }
+
+    function setLoading(on) {
+      submitBtn.disabled = on;
+      submitBtn.classList.toggle("loading", on);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = emailEl.value.trim();
+      const password = passEl.value;
+
+      if (!email || !password) return showMsg("Rellena email y contraseña.", "error");
+      if (mode === "signup" && password.length < 8) return showMsg("La contraseña debe tener al menos 8 caracteres.", "error");
+
+      setLoading(true);
+      try {
+        if (mode === "login") {
+          const { error } = await sb.auth.signInWithPassword({ email, password });
+          // Mensaje genérico: no revelamos si falla el email o la contraseña
+          if (error) return showMsg("Email o contraseña incorrectos.", "error");
+          location.replace("privado.html");
+        } else {
+          // El enlace del correo de confirmación vuelve a esta misma web
+          // (la URL debe estar en Authentication → URL Configuration → Redirect URLs)
+          const { data, error } = await sb.auth.signUp({
+            email,
+            password,
+            options: { emailRedirectTo: new URL("privado.html", location.href).href }
+          });
+          if (error) return showMsg(signupError(error), "error");
+          if (data.session) {
+            location.replace("privado.html");
+          } else {
+            showMsg("¡Cuenta creada! Revisa tu correo para confirmarla y luego inicia sesión.", "ok");
+          }
+        }
+      } catch {
+        showMsg("Error de conexión. Inténtalo de nuevo.", "error");
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>
