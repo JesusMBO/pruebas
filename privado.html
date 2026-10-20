@@ -145,8 +145,21 @@
       if (event === "SIGNED_OUT") location.replace("index.html");
     });
 
-    document.getElementById("logout").addEventListener("click", async () => {
-      await sb.auth.signOut();
+    // Cerrar sesión: primero en el servidor (invalida la sesión en todas partes);
+    // si eso falla (red, sesión caducada…), al menos se borra en este navegador.
+    document.getElementById("logout").addEventListener("click", async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        const { error } = await sb.auth.signOut();
+        if (error) {
+          console.warn("signOut global falló, cerrando solo en local:", error.message);
+          await sb.auth.signOut({ scope: "local" });
+        }
+      } catch (err) {
+        console.warn(err);
+        await sb.auth.signOut({ scope: "local" }).catch(() => {});
+      }
+      location.replace("index.html");
     });
   </script>
 </body>
