@@ -7,8 +7,13 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 // así nadie puede cambiarlo desde el navegador.
 const STRIPE_PRODUCT_ID = "prod_VTXK5eMghbtr4L";
 
-// Webs desde las que se permite iniciar un pago (añadir aquí la de GitHub Pages)
-const ALLOWED_ORIGINS = ["http://localhost:5500"];
+// Webs desde las que se permite iniciar un pago: origen → dirección base de la web
+// (en GitHub Pages la web vive dentro de la carpeta /pruebas/)
+const SITES: Record<string, string> = {
+  "http://localhost:5500": "http://localhost:5500/",
+  "https://jesusmbo.github.io": "https://jesusmbo.github.io/pruebas/",
+};
+const ALLOWED_ORIGINS = Object.keys(SITES);
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
 const supabase = createClient(
@@ -57,8 +62,8 @@ Deno.serve(async (req) => {
       customer_email: user.email,
       client_reference_id: user.id, // así el webhook sabe a quién activar
       metadata: { user_id: user.id },
-      success_url: `${origin}/pago-ok.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/privado.html?pago=cancelado`,
+      success_url: `${SITES[origin]}pago-ok.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${SITES[origin]}privado.html?pago=cancelado`,
     });
 
     return json({ url: session.url }, 200, origin);
